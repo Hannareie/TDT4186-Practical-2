@@ -1,9 +1,3 @@
-"""
-    For å kjøre benyttes følgende kommandoer:
-    -> gcc -pthread -o server mtwwwd.c (server kan byttes til annet navn)
-    -> ./server
-"""
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -76,7 +70,7 @@ void * handle_connection(void* p_client_socket) {
     int msgsize = 0;
     char actualpath[PATH_MAX+1];
 
-    while((bytes_read = read(client_socket, buffer + msgsize, sizeof(buffer)-msgsize-1))> 0) {
+    while((bytes_read = read(client_socket, buffer+msgsize, sizeof(buffer)-msgsize-1))> 0) {
         msgsize += bytes_read;
         if (msgsize > BUFSIZE-1 || buffer[msgsize-1] == '\n') break;
     }
