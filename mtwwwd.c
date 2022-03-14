@@ -1,3 +1,11 @@
+/*
+    Commands to run a server
+    -> gcc -pthread -o server mtwwwd.c (server kan byttes til annet navn)
+    -> ./server
+    This generates an execute file named server. Remember to delete this file before pushing new code.
+    
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
