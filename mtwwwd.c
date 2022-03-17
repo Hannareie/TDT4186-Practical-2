@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 #define SERVERPORT 8989
 #define BUFSIZE 4096
@@ -25,6 +26,8 @@ typedef struct sockaddr SA;
 
 void * handle_connection(void* client_socket);
 int check(int exp, const char *msg);
+
+sem_t mutex;
 
 int main(int argc, char **argv)
 {
@@ -43,6 +46,7 @@ int main(int argc, char **argv)
             "Bind failed");
     check(listen(server_socket, SERVER_BACKLOG), 
             "Listen failed");
+    printf("Listening...");
 
     while (true) {
         printf("Waiting for connections... \n");
@@ -53,11 +57,15 @@ int main(int argc, char **argv)
                 "Accect failed");
         printf("Connected\n");
 
-        //handle_connection(client_socket);
+        sem_init(&mutex, 0, 1);
         pthread_t t;
         int *pclient = malloc(sizeof(int));
         *pclient = client_socket;
-        pthread_create(&t, NULL, handle_connection, pclient);
+
+        if (pthread_create(&t, NULL, handle_connection, &client_socket) != 0)
+            // Error in creating thread
+            printf("Failed to create thread\n");
+        sem_destroy(&mutex);
     }
     return 0;
 }
@@ -71,8 +79,12 @@ int check(int exp, const char *msg) {
 }
 
 void * handle_connection(void* p_client_socket) {
+
+    sem_wait(&mutex);
+    printf("\nEntered..\n");
+
     int client_socket = *((int*)p_client_socket);
-    free(p_client_socket); 
+    //free(p_client_socket); 
     char buffer[BUFSIZE];
     size_t bytes_read;
     int msgsize = 0;
@@ -107,8 +119,12 @@ void * handle_connection(void* p_client_socket) {
         write(client_socket, buffer, bytes_read);
     }
 
+    printf("\nJust Exiting...\n");
+    sem_post(&mutex);
+
     close(client_socket);
     fclose(fp);
     printf("Closing connection\n");
+    //pthread_exit(NULL);
     return NULL;
 }
