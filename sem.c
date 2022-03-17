@@ -1,75 +1,67 @@
-#ifndef SEM_H
-#define SEM_H
+#include "sem.h"
+#include <pthread.h>
+#include <errno.h>
 
-/*
- * Semaphore implementation for the synchronization of POSIX threads.
- *
- * This module implements counting P/V semaphores suitable for the 
- * synchronization of POSIX threads. POSIX mutexes and condition variables 
- * shall be utilized to implement the semaphore operations.
- */
+typedef struct SEM {
+    volatile int val;
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+} SEM;
 
-/* Opaque type of a semaphore. 
- * ...you need to figure out the contents of struct SEM yourself!
- */
-typedef struct SEM SEM;
+SEM *sem_init(int initVal) {
+    SEM *sem = malloc(sizeof(SEM));
 
-/* Creates a new semaphore.
- *
- * This function creates a new semaphore. If an error occurs during the 
- * initialization, the implementation shall free all resources already 
- * allocated so far.
- *
- * Parameters:
- *
- * initVal      the initial value of the semaphore
- *
- * Returns:
- *
- * handle for the created semaphore, or NULL if an error occured.
- */
+    if(!sem)
+        goto Error1;
 
-SEM *sem_init(int initVal);
+    sem->val = initVal;
 
-/* Destroys a semaphore and frees all associated resources.
- *
- * Parameters:
- *
- * sem           handle of the semaphore to destroy
- *
- * Returns:
- *
- * 0 on success, negative value on error. 
- *
- * In case of an error, not all resources may have been freed, but 
- * nevertheless the semaphore handle must not be used any more.
- */
+    errno = pthread_mutex_init(&sem->mutex, NULL);
+    if(!errno) 
+        goto Error2;
+    
+    errno = pthread_cond_init(&sem->cond, NULL);
+    if(!errno)
+        goto Error3;
 
-int sem_del(SEM *sem);
+Error3:
+    sem_del(sem); 
+Error2:
+    free(buf); // usikker på hva buf egt er, men vil tro vi skal sette inn vår bbuffer?
+Error1: 
+    return NULL 
+}
 
-/* P (wait) operation.
- * 
- * Attempts to decrement the semaphore value by 1. If the semaphore value 
- * is 0, the operation blocks until a V operation increments the value and 
- * the P operation succeeds.
- *
- * Parameters:
- *
- * sem           handle of the semaphore to decrement
- */
+void sem_del(SEM *sem) {
+    //this method retunr 0 on sucess, else it returns an error number 
+    pthread_mutex_destroy(&sem->mutex);
+    free(buf); // håper dette løser problemet med å befri tilhørende ressurser
+}
 
-void P(SEM *sem);
+void P(SEM *sem) {
+    pthread_mutex_lock(&sem->mutex);
 
-/* V (signal) operation.
- *
- * Increments the semaphore value by 1 and notifies P operations that are 
- * blocked on the semaphore of the change.
- *
- * Parameters:
- *
- * sem           handle of the semaphore to increment
- */
+    //Waiting for semaphore to have a positive value
+    while(sem->val < 1)
+        pthread_cond_wait(&sem->cond, &sem->mutex);
+    
+    --sem->val;
 
-void V(SEM *sem); 
+    //If any thread is waiting, wake it up
+    if(sem->val > 0) 
+        pthread_cond_signal(&sem->cond);
+    pthread_mutex_unlock(&sem->mutex); 
 
-#endif
+void V(SEM *sem) {
+    pthread_mutex_lock(&sem->mutex);
+    ++sem->val;
+
+    //If any thread is waiting, wake it up
+    if(sem->val > 0) 
+        pthread_cond_signal(&sem->cond);
+    pthread_mutex_unlock(&sem->mutex); 
+}
+
+
+}
+
