@@ -1,82 +1,81 @@
-#ifndef ____BBUFFER___H___
-#define ____BBUFFER___H___
+#include "bbuffer.h"
+#include "sem.h"
+#include <errno.h>
+#include <pthread.h>
+#include <stdio.h>
 
-/*
- * Bounded Buffer implementation to manage int values that supports multiple 
- * readers and writers.
- *
- * The bbuffer module uses the sem module API to synchronize concurrent access 
- * of readers and writers to the bounded buffer.
- */
+typedef struct BNDBUF {
+    unsigned int size;
+    SEM lowerLimit;
+    SEM upperLimit;
 
-/* Opaque type of a Bounded Buffer.
- * ...you need to figure out the contents of struct BNDBUF yourself
- */
+    void *head;
+    void *tail;
 
-typedef struct BNDBUF BNDBUF;
+    struct BNDBUF next;
+} BNDBUF;
 
-/* Creates a new Bounded Buffer. 
- *
- * This function creates a new bounded buffer and all the helper data 
- * structures required by the buffer, including semaphores for 
- * synchronization. If an error occurs during the initialization the 
- * implementation shall free all resources already allocated by then.
- *
- * Parameters:
- *
- * size     The number of integers that can be stored in the bounded buffer.
- *
- * Returns:
- *
- * handle for the created bounded buffer, or NULL if an error occured.
- */
 
-BNDBUF *bb_init(unsigned int size);
+BNDBUF *bb_init(unsigned int size) {
+    SEM sem;
+    BNDBUF *bndbuf = malloc(sizeof(BNDBUF));
+    bndbuf->semLowerLimit = *sem_init(0);
+    bndbuf->semUpperLimit = *sem_init(size);
+    bndbuf->capacity = size;
 
-/* Destroys a Bounded Buffer. 
- *
- * All resources associated with the bounded buffer are released.
- *
- * Parameters:
- *
- * bb       Handle of the bounded buffer that shall be freed.
- */
+    if (!bndbuf)
+    {
+        goto Error1;
+    }
 
-void bb_del(BNDBUF *bb);
+    bndbuf->size = size;
 
-/* Retrieve an element from the bounded buffer.
- *
- * This function removes an element from the bounded buffer. If the bounded 
- * buffer is empty, the function blocks until an element is added to the 
- * buffer.
- *
- * Parameters:
- *
- * bb         Handle of the bounded buffer.
- *
- * Returns:
- *
- * the int element
- */
+    return bndbuf;
+Error1:
+    return ((void *)0);
+}
 
-int  bb_get(BNDBUF *bb);
 
-/* Add an element to the bounded buffer. 
- *
- * This function adds an element to the bounded buffer. If the bounded 
- * buffer is full, the function blocks until an element is removed from 
- * the buffer.
- *
- * Parameters:
- *
- * bb     Handle of the bounded buffer.
- * fd     Value that shall be added to the buffer.
- *
- * Returns:
- *
- * the int element
- */
+//size - The number of integers that can be stored in the bounded buffer.
+//returns (head) handle for the created bounded buffer, or NULL if an error occured.
 
-void bb_add(BNDBUF *bb, int fd);
+void bb_del(BNDBUF *bb) {
+    free(bb -> semLowerLimit);
+    free(bb -> semUpperLimit);
+    free(bb -> capacity);
+    free(bb -> size);
+    free(bb -> head);
+    free(bb -> tail);
+}
 
-#endif
+//bb - Handle of the bounded buffer.
+
+int  bb_get(BNDBUF *bb) {
+    if (head == NULL) {
+        return NULL;
+    } else{
+        int *result = head->client_socket;
+        BNDBUF *temp = head;
+        head = head -> next;
+        if (head == NULL) {tail = NULL;}
+        free(temp);
+        return result;
+    }
+}
+
+//bb - Handle of the bounded buffer.
+
+void bb_add(BNDBUF *bb, int fd) {
+    BNDBUF *newNode = malloc(sizeof(buff_node));
+    newNode -> client_socket = client_socket;
+    newNode -> next = NULL;
+    if (tail == NULL) {
+        head = newnode;
+    } else {
+        tail -> next = newNode;
+    }
+    tail = newNode;
+}
+
+//bb - (head) Handle of the bounded buffer.
+//fd -  Value that shall be added to the buffer.

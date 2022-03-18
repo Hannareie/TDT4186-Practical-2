@@ -5,7 +5,6 @@
     This generates an execute file named server. Remember to delete this file before pushing new code.
     
 */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,6 +15,8 @@
 #include <limits.h>
 #include <pthread.h>
 #include <semaphore.h>
+//#include "sem.h"
+#include "bbuffer.h"
 
 #define SERVERPORT 8989
 #define BUFSIZE 4096
@@ -23,9 +24,12 @@
 
 typedef struct sockaddr_in SA_IN;
 typedef struct sockaddr SA;
+//typedef BNDBUF buffer;
+
 
 void * handle_connection(void* client_socket);
 int check(int exp, const char *msg);
+//void * thread_function(void *arg);
 
 sem_t mutex;
 
@@ -33,6 +37,7 @@ int main(int argc, char **argv)
 {
     int server_socket, client_socket, addr_size;
     SA_IN server_addr, client_addr;
+    //buffer buff = bb_init(BUFSIZE);
 
     check((server_socket = socket(AF_INET , SOCK_STREAM , 0)), 
             "Failed to create socket");
@@ -57,6 +62,14 @@ int main(int argc, char **argv)
                 "Accect failed");
         printf("Connected\n");
 
+        /*
+        SEM mutex = sem_init(1);
+        pthread_t t;
+        pthread_mutex_lock(&mutex);
+        bb_add(buff, pclient);
+        pthread_mutex_unlock(&mutex);
+        */
+
         sem_init(&mutex, 0, 1);
         pthread_t t;
         int *pclient = malloc(sizeof(int));
@@ -78,13 +91,26 @@ int check(int exp, const char *msg) {
     return exp;
 }
 
+/*
+void * thread_function(void *arg) {
+    while (true){
+        int *pclient;
+        pthread_mutex_lock(&mutex);
+        pclient = bb_get(&buff);
+        pthread_mutex_unlock(&mutex);
+        if (pclient != NULL) {
+            handle_connection(pclient);
+        }
+    }
+}
+*/
+
 void * handle_connection(void* p_client_socket) {
 
     sem_wait(&mutex);
     printf("\nEntered..\n");
 
     int client_socket = *((int*)p_client_socket);
-    //free(p_client_socket); 
     char buffer[BUFSIZE];
     size_t bytes_read;
     int msgsize = 0;

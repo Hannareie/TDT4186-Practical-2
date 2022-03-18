@@ -23,6 +23,8 @@ SEM *sem_init(int initVal) {
     errno = pthread_cond_init(&sem->cond, NULL);
     if(!errno)
         goto Error3;
+    
+    return sem;
 
 Error3:
     sem_del(sem); 
@@ -51,6 +53,7 @@ void P(SEM *sem) {
     if(sem->val > 0) 
         pthread_cond_signal(&sem->cond);
     pthread_mutex_unlock(&sem->mutex); 
+}
 
 void V(SEM *sem) {
     pthread_mutex_lock(&sem->mutex);
@@ -61,7 +64,3 @@ void V(SEM *sem) {
         pthread_cond_signal(&sem->cond);
     pthread_mutex_unlock(&sem->mutex); 
 }
-
-
-}
-
