@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <sys/sendfile.h>
 #include <netinet/in.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <pthread.h>
 #include "bbuffer.h"
@@ -22,7 +22,6 @@ int server_socket, client_socket, data;
 socklen_t client_len;
 struct sockaddr_in server_address, client_address;
 
-//char buffer[MAXREQ], body[MAXREQ], msg[MAXREQ];
 void error(const char *msg) {
     perror(msg); 
     exit(1);
@@ -46,35 +45,38 @@ void* handle_connection() {
         buffer = malloc(MAXREQ);
         msg = malloc(MAXREQ);
         
-        bzero(buffer, sizeof(buffer));
+        bzero(buffer, MAXREQ);
 
-        data = read(thread_socket, buffer, sizeof(buffer) - 1); 
+        data = read(thread_socket, buffer, MAXREQ - 1); 
         if (data < 0) error("Reading from socket failed");
-        
+
         strcpy(www_path, www_path_head);
         strtok(buffer, " ");
         strcat(www_path, strtok(NULL, " "));
-        
+
         file = fopen(www_path,"r");
-        
+        printf("%s\n", www_path);
+
         if (file != NULL) {
-            size_t new_len = fread(body, sizeof(char), MAXREQ, file);
-            if (ferror(file) != 0 ) {
-                fputs("Reading from socket failed", stderr);
+            size_t newLen = fread(body, sizeof(char), MAXREQ, file);
+            if ( ferror( file ) != 0 ) {
+                fputs("Error reading file", stderr);
             } else {
-                body[new_len++] = '\0'; 
+                body[newLen++] = '\0';
             }
             fclose(file);
         }
-        
-        snprintf(msg, sizeof(msg), 
-            "HTTP/1.0 200 OK\n"
-            "Content-Type: text/html\n"
-            "Content-Length: %ld\n\n%s",
-            strlen(body), body);
-        
+
+        snprintf(msg, sizeof(msg),
+                "HTTP/1.0 200 OK\n"
+                "Content-Type: text/html\n"
+                "Content-Length: %d\n\n%s",
+                strlen(body), body);
+
+            
         data = write(client_socket, msg, strlen(msg));
         if (data < 0) error("Error writing to socket");
+
         close(thread_socket);
         free(buffer);
         free(msg);
@@ -85,33 +87,16 @@ void* handle_connection() {
 }
 
 int main(int argc, char *argv[]) {
-
-    //Format: mtwwwd www-path port #threads #bufferslots
-    //gcc -o mtwwwd mtwwwd.c
-    //./mtwwwd /home/hannareie/Oving_2_OPSYS/docs 8989 5 5 
-    
-    if (argc > 1) {
+    if (argc == 5) {
         strcpy(www_path_head, argv[1]);
+        port = atoi(argv[2]);
+        num_threads = atoi(argv[3]);
+        num_buffer_slots = atoi(argv[4]);
     } else {
-        error("No www-path is given\n");
-    } 
-    if (argc > 2) {
-        sscanf(argv[2], "%d", &port);
-    } else {
-        error("No port is given\n");
-    }
-    if (argc > 3) {
-        sscanf(argv[3], "%d", &num_threads);
-    } else {
-        error("Number of threads is not given\n");
-    }
-    if (argc > 4) {
-        sscanf(argv[4], "%d", &num_buffer_slots);
-    } else {
-        error("Number of buffer slots is not given\n");
+        error("Invoke this command using mtwwwd [www-path] [port] [#threads] [#bufferslots]");
     }
     
-    printf("Program is started at port %i with given www_path: %s \n", port, www_path_head);
+    printf("Program is started at port %i with given www_path: %s \n", port, www_path);
     
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket == -1) {
@@ -128,7 +113,7 @@ int main(int argc, char *argv[]) {
         error("Error while binding socket\n");
     }
     
-    if (listen(server_socket, 10) != 0) {
+    if (listen(server_socket, 5) != 0) {
         error("Error occured while listening to socket \n");
     }
     printf("Listening...\n");
