@@ -1,81 +1,47 @@
 #include "bbuffer.h"
 #include "sem.h"
-#include <errno.h>
-#include <pthread.h>
+#include <stdlib.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <unistd.h>
 
 typedef struct BNDBUF {
-    unsigned int size;
-    SEM lowerLimit;
-    SEM upperLimit;
+    SEM *lowerLimit;
+    SEM *upperLimit;
 
-    void *head;
-    void *tail;
-
-    struct BNDBUF next;
+    long long* buffer;
+    size_t size;
+    size_t head;
+    size_t tail;
 } BNDBUF;
 
-
 BNDBUF *bb_init(unsigned int size) {
-    SEM sem;
-    BNDBUF *bndbuf = malloc(sizeof(BNDBUF));
-    bndbuf->semLowerLimit = *sem_init(0);
-    bndbuf->semUpperLimit = *sem_init(size);
-    bndbuf->capacity = size;
+    BNDBUF *bbuffer = malloc(sizeof(BNDBUF));
+    bbuffer->lowerLimit = sem_init(0);
+    bbuffer->upperLimit = sem_init(size);
+    bbuffer->head = 0;
+    bbuffer->tail = 0;
+    bbuffer->size = size;
+    bbuffer->buffer = malloc(size*sizeof(long long));
 
-    if (!bndbuf)
-    {
-        goto Error1;
-    }
-
-    bndbuf->size = size;
-
-    return bndbuf;
-Error1:
-    return ((void *)0);
+    return bbuffer;
 }
-
-
-//size - The number of integers that can be stored in the bounded buffer.
-//returns (head) handle for the created bounded buffer, or NULL if an error occured.
 
 void bb_del(BNDBUF *bb) {
-    free(bb -> semLowerLimit);
-    free(bb -> semUpperLimit);
-    free(bb -> capacity);
-    free(bb -> size);
-    free(bb -> head);
-    free(bb -> tail);
+    free(bb);
 }
 
-//bb - Handle of the bounded buffer.
-
-int  bb_get(BNDBUF *bb) {
-    if (head == NULL) {
-        return NULL;
-    } else{
-        int *result = head->client_socket;
-        BNDBUF *temp = head;
-        head = head -> next;
-        if (head == NULL) {tail = NULL;}
-        free(temp);
-        return result;
-    }
+int bb_get(BNDBUF *bb) {
+    P(bb->lowerLimit);
+    V(bb->upperLimit);
+    long long target = *(bb->buffer + bb->tail);
+    (bb->tail) = (bb->tail + 1) % bb->size;
+    return target;
 }
-
-//bb - Handle of the bounded buffer.
 
 void bb_add(BNDBUF *bb, int fd) {
-    BNDBUF *newNode = malloc(sizeof(buff_node));
-    newNode -> client_socket = client_socket;
-    newNode -> next = NULL;
-    if (tail == NULL) {
-        head = newnode;
-    } else {
-        tail -> next = newNode;
-    }
-    tail = newNode;
+    P(bb->upperLimit);
+    V(bb->lowerLimit);
+    bb->buffer[bb->head] = fd;
+    bb->head = (bb->head + 1) % bb->size;
 }
-
-//bb - (head) Handle of the bounded buffer.
-//fd -  Value that shall be added to the buffer.
