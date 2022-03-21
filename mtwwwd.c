@@ -28,17 +28,14 @@ void error(const char *msg) {
 }
 
 void* handle_connection() {
-    long body_size = 0;
     int thread_socket;
-    ssize_t data;
+    ssize_t n;
     char* body;
     char* buffer;
     char* msg;
 
-    FILE *file;
-    char *file_data;
-    int file_size;
-    
+    FILE *fp;
+
     while(1) {
         thread_socket = bb_get(bbuffer);
         body = malloc(MAXREQ);
@@ -47,24 +44,24 @@ void* handle_connection() {
         
         bzero(buffer, MAXREQ);
 
-        data = read(thread_socket, buffer, MAXREQ - 1); 
-        if (data < 0) error("Reading from socket failed");
+        n = read(thread_socket, buffer, MAXREQ - 1); 
+        if (n < 0) error("Reading from socket failed");
 
         strcpy(www_path, www_path_head);
         strtok(buffer, " ");
         strcat(www_path, strtok(NULL, " "));
 
-        file = fopen(www_path,"r");
+        memset(body, '\0', MAXREQ);
+
+        fp = fopen(www_path,"rb");
         printf("%s\n", www_path);
 
-        if (file != NULL) {
-            size_t newLen = fread(body, sizeof(char), MAXREQ, file);
-            if ( ferror( file ) != 0 ) {
-                fputs("Error reading file", stderr);
-            } else {
-                body[newLen++] = '\0';
+        if (fp != NULL) {
+            fread(body, sizeof(char), MAXREQ, fp);
+            if (ferror(fp) != 0 ) {
+            fputs("Error reading file", stderr);
             }
-            fclose(file);
+            fclose(fp);
         }
 
         snprintf(msg, sizeof(msg),
@@ -72,10 +69,9 @@ void* handle_connection() {
                 "Content-Type: text/html\n"
                 "Content-Length: %d\n\n%s",
                 strlen(body), body);
-
             
-        data = write(client_socket, msg, strlen(msg));
-        if (data < 0) error("Error writing to socket");
+        n = write(client_socket, msg, strlen(msg));
+        if (n < 0) error("Error writing to socket");
 
         close(thread_socket);
         free(buffer);
@@ -95,7 +91,6 @@ int main(int argc, char *argv[]) {
     } else {
         error("Invoke this command using mtwwwd [www-path] [port] [#threads] [#bufferslots]");
     }
-    
     printf("Program is started at port %i with given www_path: %s \n", port, www_path);
     
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
