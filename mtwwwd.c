@@ -27,12 +27,16 @@ void error(const char *msg) {
     exit(1);
 }
 
-void* handle_connection() {
-    int thread_socket;
-    ssize_t n;
-    char* body;
-    char* buffer;
-    char* msg;
+void* handle_connection(int client_socket) {
+    char buffer[MAXREQ];
+    size_t bytes_read;
+    int msg;
+    char actualpath[PATH_MAX+1];
+
+    while(bytes_read = read(client_socket, buffer+msgsize, sizeof(buffer)-msgsize-1)) > 0) {
+        msgsize += bytes_read;
+        if (msgsize > MAXREQ -1 || buffer[msgsize-1] == '\n') break;
+    }
 
     FILE *fp;
 
