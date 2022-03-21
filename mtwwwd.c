@@ -44,33 +44,33 @@ void* handle_connection() {
         
         bzero(buffer, MAXREQ);
 
-        n = read(thread_socket, buffer, MAXREQ - 1); 
+        n = read(thread_socket, buffer, MAXREQ-1); 
         if (n < 0) error("Reading from socket failed");
+        memset(body, '\0', MAXREQ);
 
         strcpy(www_path, www_path_head);
         strtok(buffer, " ");
         strcat(www_path, strtok(NULL, " "));
 
-        memset(body, '\0', MAXREQ);
+        fp = fopen(www_path,"r");
 
-        fp = fopen(www_path,"rb");
-        printf("%s\n", www_path);
-
-        if (fp != NULL) {
-            fread(body, sizeof(char), MAXREQ, fp);
-            if (ferror(fp) != 0 ) {
-            fputs("Error reading file", stderr);
-            }
+        if (!fp) {
+            snprintf(body, MAXREQ, 
+            "%s",
+            "<html><body><h1> 404 File Not Found </h1></body></html>\r\n");
+        } else {
+            fread(body, MAXREQ, 1, fp);
+            //printf("%s\n", body);
             fclose(fp);
         }
-
-        snprintf(msg, sizeof(msg),
+        
+        snprintf(msg, MAXREQ,
                 "HTTP/1.0 200 OK\n"
                 "Content-Type: text/html\n"
-                "Content-Length: %d\n\n%s",
-                strlen(body), body);
-            
-        n = write(client_socket, msg, strlen(msg));
+                "Content-Length: %d\n\n%s", MAXREQ, body);
+
+        printf("%s", msg);
+        n = write(thread_socket, msg, strlen(msg));
         if (n < 0) error("Error writing to socket");
 
         close(thread_socket);
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
     } else {
         error("Invoke this command using mtwwwd [www-path] [port] [#threads] [#bufferslots]");
     }
-    printf("Program is started at port %i with given www_path: %s \n", port, www_path);
+    printf("Program is started at port %i with given www_path: %s \n", port, www_path_head);
     
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket == -1) {
