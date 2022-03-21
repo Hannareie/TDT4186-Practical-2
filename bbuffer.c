@@ -17,6 +17,7 @@ typedef struct BNDBUF {
 
 BNDBUF *bb_init(unsigned int size) {
     BNDBUF *bbuffer = malloc(sizeof(BNDBUF));
+    
     bbuffer->lowerLimit = sem_init(0);
     bbuffer->upperLimit = sem_init(size);
     bbuffer->head = 0;
