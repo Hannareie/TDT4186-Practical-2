@@ -18,9 +18,9 @@ int num_buffer_slots;
 
 BNDBUF* bbuffer;
 
-int server_socket, client_socket, data;
+int server_socket, client_socket;
 socklen_t client_len;
-struct sockaddr_in server_address, client_address;
+struct sockaddr_in6 server_address, client_address;
 
 void error(const char *msg) {
     perror(msg); 
@@ -102,8 +102,9 @@ int main(int argc, char *argv[]) {
     }
     printf("Program is started at port %i with given www_path: %s\n", port, www_path_head);
     
-    //Creating a new socket
-    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    //Creating a new socket that allows both IPv4 and IPv6
+    server_socket = socket(PF_INET6, SOCK_STREAM, 0);
+
     if (server_socket == -1) {
         error("Error opening socket\n");
     }
@@ -111,9 +112,9 @@ int main(int argc, char *argv[]) {
     
     //Binging the socket to a given address
     bzero((char *) &server_address, sizeof(server_address));
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_address.sin_port = htons(port);
+    server_address.sin6_family = AF_INET6;
+    server_address.sin6_addr = in6addr_any;
+    server_address.sin6_port = htons(port);
     if (bind(server_socket, (struct sockaddr *) &server_address, sizeof(server_address)) < 0) {
         error("Error while binding socket\n");
     }
