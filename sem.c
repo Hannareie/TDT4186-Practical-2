@@ -1,8 +1,8 @@
-#include "sem.h"
 #include <pthread.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "sem.h"
 
 typedef struct SEM {
     volatile int val;

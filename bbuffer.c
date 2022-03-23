@@ -1,9 +1,9 @@
-#include "bbuffer.h"
-#include "sem.h"
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <unistd.h>
+#include "bbuffer.h"
+#include "sem.h"
 
 typedef struct BNDBUF {
     SEM *lowerLimit;
@@ -37,6 +37,7 @@ int bb_get(BNDBUF *bb) {
     V(bb->upperLimit);
     long long target = *(bb->buffer + bb->tail);
     (bb->tail) = (bb->tail + 1) % bb->size;
+
     return target;
 }
 

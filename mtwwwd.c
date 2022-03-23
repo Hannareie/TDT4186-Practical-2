@@ -1,3 +1,12 @@
+/*
+ * Author: Hanna Reiestad (hereiest), Tuva Djupvik (tuvald), Linn Marie Pedersen (lmpeders)
+ * Purpose: Implementation of a multithreaded web server
+ * Language:  C
+ * Compilation: The code is compiled with the command: gcc -pthread -o [name] mtwwwd.c sem.c bbuffer.c
+ * Execution: The code is executed with the command: ./[name] [www-path] [port] [#threads] [#bufferslots]
+ * Usage: Request the provided html file throuh a web browser on localhost:[port]/docs/index.html
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,7 +42,6 @@ void* handle_connection() {
     char* body;
     char* buffer;
     char* msg;
-
     FILE *fp;
 
     while(1) {
@@ -128,7 +136,7 @@ int main(int argc, char *argv[]) {
     // Creating the buffer
     bbuffer = bb_init(num_buffer_slots);
 
-    // Creating the thread
+    // Creating the server threads
     int thread;
     pthread_t server_threads[num_threads];
     for (int i = 0; i < num_threads; i++) {
@@ -142,7 +150,6 @@ int main(int argc, char *argv[]) {
 
         //Accepting a new connection
         client_socket = accept(server_socket, (struct sockaddr *) &client_address, &client_len);
-        
         if (client_socket < 0) {
             error("Accept failed\n");
         } 
